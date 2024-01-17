@@ -151,6 +151,7 @@ const displayController = (() => {
 const runGame = () => {
   let finished = false; 
   let player1Turn = true;
+  let moveCount = 0;
 
   while (!finished) {
     // Display the game board
@@ -197,7 +198,18 @@ const runGame = () => {
         }
       }
     }
+
+    moveCount += 1;
+
+    // check for draw
+    if (moveCount == 9) {
+      finished = true;
+      displayController.render();
+      console.log("It's a draw!");
+    }
   }
+
+  console.log("To play again, please refresh browser");
 }
 
 // Run the game
