@@ -1,4 +1,4 @@
 # TODO
 
 - [x] Implement draw (win already implemented)
-- [ ] Implement GUI (HTML/CSS)
+- [x] Implement GUI (HTML/CSS)

@@ -142,8 +142,10 @@ const gameBoard = (() => {
 })();
 
 const displayController = (() => {
+  let reporter = document.querySelector(".report");
+
   // Print the game board
-  const render = () => {
+  const consoleRender = () => {
     const renderRow = (row) => {
       console.log(gameBoard.at(row,0) + "|" + gameBoard.at(row,1) + "|" + gameBoard.at(row,2));
     }
@@ -173,23 +175,61 @@ const displayController = (() => {
     console.log("");
   }
 
-  return { render };
+  const render = () => {
+    let gameGrid = document.querySelector(".game");
+    gameGrid.replaceChildren();
+
+    for (let i = 0; i < 3; i++) {
+      for (let j = 0; j < 3; j++) {
+        let child = document.createElement("div");
+        child.classList.add("cell");
+        child.classList.add(`row-${i}`);
+        child.classList.add(`col-${j}`);
+
+        let token = gameBoard.at(i, j);
+        child.textContent = (token == "_") ? "" : token;
+        gameGrid.appendChild(child);
+      }
+    }
+  }
+
+  const clearReport = () => {
+    reporter.textContent = "";
+  }
+
+  const drawRestartButton =  (restart) => {
+    let playAgain = document.createElement("button");
+    playAgain.classList.add("play-again");
+    playAgain.textContent = "Play Again";
+    reporter.appendChild(playAgain);
+
+    playAgain.addEventListener("click", (event) => {
+      clearReport();
+      restart();
+    });
+  }
+
+  const draw = (restarter) => {
+    reporter.textContent = "It's a draw!";
+
+    drawRestartButton(restarter);
+  }
+
+  const winner = (restarter, playerName) => {
+    reporter.textContent = `Congratulations, ${playerName}, you've won!`; 
+
+    drawRestartButton(restarter);
+  }
+
+  return { render, draw, winner };
 })();
 
 const player = (placePiece, name = "") => {
   let playerName = name;
-  const makeMove = () => {
-    let coordStr = prompt(`${playerName} where do you place your token? (use comma separation)`);
-    const coords = coordStr.split(",");
-
+  const makeMove = (x, y) => {
     let moveValid = false;
-    if (coords.length == 2) {
-      let x = +coords[0];
-      let y = +coords[1];
-
-      if ((x >= 0 && x < 3) && (y >= 0 && y < 3)) {
-        moveValid = placePiece(x, y);
-      }
+    if ((x >= 0 && x < 3) && (y >= 0 && y < 3)) {
+      moveValid = placePiece(x, y);
     }
      
     return moveValid;
@@ -201,13 +241,47 @@ const player = (placePiece, name = "") => {
 }
 
 const gameController = (() => {
-  const p1Name = prompt("Player 1, please enter your name");
-  const p2Name = prompt("Player 2, please enter your name");
+  let player1 = player(gameBoard.placeX, "Player 1");
+  let player2 = player(gameBoard.placeO, "Player 2");
+  let player1Turn = true;
 
-  const player1 = player(gameBoard.placeX, p1Name);
-  const player2 = player(gameBoard.placeO, p2Name);
+  let move = {
+    fresh: false,
+    x: null,
+    y: null
+  }
 
-  const playRound = () => {
+  // Listen for player moves
+  document.addEventListener('click', (event) => {
+    console.log("Got here");
+    let classes = event.target.className.split(" ");
+
+    // If the component is a cell
+    if (classes.indexOf("cell") !== -1) {
+      classes.forEach((item) => {
+        if (item != "cell") {
+          let classData = item.split("-");
+          switch (classData[0]) {
+            case "row":
+              move.x = +classData[1];
+              break;
+            case "col":
+              move.y = +classData[1];
+              break;
+          }
+        }
+      }); 
+
+      console.log(move.x, move.y);
+      move.fresh = true;
+    }
+  });
+
+  const playRound = async () => {
+    const sleep = (ms) => {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
     const results = {
       finished: false,
       draw: false,
@@ -216,9 +290,16 @@ const gameController = (() => {
 
     let valid = false;
     while (!valid) {
-      valid = player1.makeMove();  
+      if (move.fresh) {
+        valid = player1.makeMove(move.x, move.y);  
+      }
+      await sleep(20);
     }
 
+    // Manually make move stale since it was just used
+    move.fresh = false;
+
+    // Check if game is finished
     if (gameBoard.hasThreeInARow()) {
       results.finished = true;
       results.winner = player1.getName();
@@ -227,14 +308,22 @@ const gameController = (() => {
       results.draw = true;
     }
 
+    // Re-render the board
     displayController.render();
+
+    player1Turn = false;
 
     // If player1 didn't win from previous move
     if (!results.finished) {
       valid = false;
       while (!valid) {
-        valid = player2.makeMove();
+        if (move.fresh) {
+          valid = player2.makeMove(move.x, move.y);
+        }
+        await sleep(20);
       }
+
+      move.fresh = false;
 
       if (gameBoard.hasThreeInARow()) {
         results.finished = true;
@@ -242,41 +331,55 @@ const gameController = (() => {
       }
 
       displayController.render();
+
+      player1Turn = true;
     }
 
     return results;
   }
 
   const resetGame = () => {
+    player1 = player(gameBoard.placeX, "Player 1");
+    player2 = player(gameBoard.placeO, "Player 2");
+    player1Turn = true;
+
+    move = {
+      fresh: false,
+      x: null,
+      y: null
+    }
+
     gameBoard.reset();
+    displayController.render();
+
+    runGame();
   }
 
-  return { playRound, resetGame }
+  return { playRound, player1Turn, resetGame }
 })();
 
 /**
   * The main game loop
   */
-const runGame = () => {
+const runGame = async () => {
   let finished = false; 
 
   // Display the initial game board
   displayController.render();
 
   while (!finished) {
-    results = gameController.playRound();
+    results = await gameController.playRound();
 
     finished = results.finished;
     draw = results.draw;
 
     if (finished) {
       if (draw) {
-        console.log("It's a draw!");
+        displayController.draw(gameController.resetGame);
       } else {
         winner = results.winner;
-        console.log(`Congratulations, ${winner}! You've won!`);
+        displayController.winner(gameController.resetGame, winner);
       }
-      console.log("To play again, please refresh browser");
     }
   }
 }

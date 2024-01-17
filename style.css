@@ -1,0 +1,124 @@
+html, body {
+  height: 100%;
+}
+
+.container {
+  min-height: 100%;
+  display: grid;
+  grid-template-rows: 1.5fr 6fr 1fr;
+  justify-content: center;
+  align-items: start;
+}
+
+.header {
+  align-self: end;
+  display: grid;
+  justify-content: center;
+  align-self: start;
+  margin-top: 2vh;
+  margin-bottom: 3vh;
+}
+
+.header p {
+  font-family: monospace, sans-serif;
+  font-size: 3rem;
+
+  color: black;
+}
+
+.game-container {
+  min-height: 100%;
+  align-self: start;
+  display: grid;
+  grid-template-rows: 5fr 1fr;
+  justify-items: center;
+  align-items: start;
+  margin-top: 3vh;
+}
+
+.game {
+  min-height: 50vh;
+  min-width: 50vh;
+  display: grid;
+  justify-content: center;
+  grid-template-rows: repeat(3, 1fr);
+  grid-template-columns: repeat(3, 1fr);
+  margin-left: 30vw;
+  margin-right: 30vw;
+}
+
+.cell {
+  display: grid;
+  justify-content: center;
+  align-items: center;
+  border-style: solid;
+  border-color: black;
+  font-family: sans-serif;
+  font-size: 4rem;
+}
+
+.row-0 {
+  border-top-style: none;
+}
+
+.col-0 {
+  border-left-style: none;
+}
+
+.row-2 {
+  border-bottom-style: none;
+}
+
+.col-2 {
+  border-right-style: none;
+}
+
+.report {
+  display: grid;
+  grid-template-rows: repeat(2, 1fr);
+  min-height: 100%;
+  font-weight: bold;
+}
+
+.footer {
+  align-self: end;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 0.75rem;
+  font-family: "Trebuchet MS";
+  gap: 6px;
+  margin-bottom: 2vh;
+}
+
+.copyright {
+  justify-self: end;
+}
+
+.github {
+  width: 2%;
+}
+
+@media only screen and (max-width: 600px) {
+  .game-container {
+    padding-left: 8vw;
+  }
+
+  .game {
+    display: grid;
+    margin-left: 6vw;
+    margin-right: 2vw;
+  }
+
+  .github {
+    width: 3%;
+  }
+}
+
+@media print {
+  .game {
+    display: grid;
+    margin-left: 15vw;
+    margin-right: 15vw;
+  }
+}
