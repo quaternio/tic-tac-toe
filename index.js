@@ -28,21 +28,31 @@ const gameBoard = (() => {
   reset();
 
   const placeX = (x, y) => {
+    let moveValid = false;
+    
     // If values valid
     if ((x >= 0 && x < board.length) && (y >= 0 && y < board.length)) {
       if (board[x][y] == cell.empty) {
         board[x][y] = cell.X; 
+        moveValid = true;
       }
     }
+
+    return moveValid;
   };
 
   const placeO = (x, y) => {
+    let moveValid = false;
+
     // If values valid
     if ((x >= 0 && x < board.length) && (y >= 0 && y < board.length)) {
       if (board[x][y] == cell.empty) {
         board[x][y] = cell.O; 
+        moveValid = true;
       }
     }
+
+    return moveValid;
   };
 
   // Checks all 8 possibilities
@@ -94,6 +104,24 @@ const gameBoard = (() => {
     return checkRows() || checkCols() || checkDiags();
   }
 
+  const full = () => {
+    let boardFull = true;
+    for (let i = 0; i < board.length; i++) {
+      for (let j = 0; j < board.length; j++) {
+        if (board[i][j] == cell.empty) {
+          boardFull = false;
+          break;
+        } 
+      }
+
+      if (!boardFull) {
+        break;
+      }
+    }
+
+    return boardFull;
+  }
+
   const at = (x, y) => {
     let occupant;
     switch (board[x][y]) {
@@ -110,7 +138,7 @@ const gameBoard = (() => {
     return occupant;
   }
 
-  return { reset, placeX, placeO, hasThreeInARow, at };
+  return { reset, placeX, placeO, hasThreeInARow, full, at };
 })();
 
 const displayController = (() => {
@@ -148,68 +176,109 @@ const displayController = (() => {
   return { render };
 })();
 
-const runGame = () => {
-  let finished = false; 
-  let player1Turn = true;
-  let moveCount = 0;
+const player = (placePiece, name = "") => {
+  let playerName = name;
+  const makeMove = () => {
+    let coordStr = prompt(`${playerName} where do you place your token? (use comma separation)`);
+    const coords = coordStr.split(",");
 
-  while (!finished) {
-    // Display the game board
-    displayController.render();
+    let moveValid = false;
+    if (coords.length == 2) {
+      let x = +coords[0];
+      let y = +coords[1];
 
-    if (player1Turn) {
-      let coordStr = prompt("Player 1 where do you place your 'X'? (use comma separation)");
-      const coords = coordStr.split(",");
-
-      if (coords.length == 2) {
-        let x = +coords[0];
-        let y = +coords[1];
-
-        if ((x >= 0 && x < 3) && (y >= 0 && y < 3)) {
-          gameBoard.placeX(x, y);
-
-          if (gameBoard.hasThreeInARow()) {
-            finished = true;
-            displayController.render();
-            console.log("Congratulations, Player 1! You've won!");
-          } else {
-            player1Turn = false;
-          }
-        }
-      }
-    } else {
-      let coordStr = prompt("Player 2 where do you place your 'O'? (use comma separation)");
-      const coords = coordStr.split(",");
-
-      if (coords.length == 2) {
-        let x = +coords[0];
-        let y = +coords[1];
-
-        if ((x >= 0 && x < 3) && (y >= 0 && y < 3)) {
-          gameBoard.placeO(x, y);
-
-          if (gameBoard.hasThreeInARow()) {
-            finished = true;
-            displayController.render();
-            console.log("Congratulations, Player 2! You've won!");
-          } else {
-            player1Turn = true;
-          }
-        }
+      if ((x >= 0 && x < 3) && (y >= 0 && y < 3)) {
+        moveValid = placePiece(x, y);
       }
     }
-
-    moveCount += 1;
-
-    // check for draw
-    if (moveCount == 9) {
-      finished = true;
-      displayController.render();
-      console.log("It's a draw!");
-    }
+     
+    return moveValid;
   }
 
-  console.log("To play again, please refresh browser");
+  const getName = () => { return playerName } 
+
+  return { makeMove, getName };
+}
+
+const gameController = (() => {
+  const p1Name = prompt("Player 1, please enter your name");
+  const p2Name = prompt("Player 2, please enter your name");
+
+  const player1 = player(gameBoard.placeX, p1Name);
+  const player2 = player(gameBoard.placeO, p2Name);
+
+  const playRound = () => {
+    const results = {
+      finished: false,
+      draw: false,
+      winner: null
+    }
+
+    let valid = false;
+    while (!valid) {
+      valid = player1.makeMove();  
+    }
+
+    if (gameBoard.hasThreeInARow()) {
+      results.finished = true;
+      results.winner = player1.getName();
+    } else if (gameBoard.full()) { // NOTE: This can only happen with X's
+      results.finished = true;
+      results.draw = true;
+    }
+
+    displayController.render();
+
+    // If player1 didn't win from previous move
+    if (!results.finished) {
+      valid = false;
+      while (!valid) {
+        valid = player2.makeMove();
+      }
+
+      if (gameBoard.hasThreeInARow()) {
+        results.finished = true;
+        results.winner = player2.getName();
+      }
+
+      displayController.render();
+    }
+
+    return results;
+  }
+
+  const resetGame = () => {
+    gameBoard.reset();
+  }
+
+  return { playRound, resetGame }
+})();
+
+/**
+  * The main game loop
+  */
+const runGame = () => {
+  let finished = false; 
+
+  // Display the initial game board
+  displayController.render();
+
+  while (!finished) {
+    results = gameController.playRound();
+
+    finished = results.finished;
+    draw = results.draw;
+
+    if (finished) {
+      if (draw) {
+        console.log("It's a draw!");
+      } else {
+        winner = results.winner;
+        console.log(`Congratulations, ${winner}! You've won!`);
+      }
+      console.log("To play again, please refresh browser");
+    }
+  }
 }
 
 // Run the game
